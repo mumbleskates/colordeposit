@@ -3,12 +3,12 @@ import random
 
 import pytest
 
-from kdtree import UniformKdTree
+from kdtree import ImplicitKdTree
 
 
 @pytest.mark.parametrize('k', range(1, 8))
 def test_fuzz(k, verbose=False):
-    tree = UniformKdTree(k, tuple((0, 1) for _ in range(k)))
+    tree = ImplicitKdTree(k, tuple((0, 1) for _ in range(k)))
     keys = list(range(min(64 ** k, 50000)))
 
     full_count = 0
@@ -58,8 +58,8 @@ def verify(tree):
             assert node.depth == max(0 if n is None else n.depth for n in (node.left, node.right))
 
             # recurse downwards
-            lower, upper = envelope[dim]
-            mid = (lower + upper) / 2
+            low_up = lower, upper = envelope[dim]
+            mid = tree.splitter(envelope, dim)
             if node.left:
                 envelope[dim] = (lower, mid)
                 check(node.left, envelope, depth + 1)
@@ -67,7 +67,7 @@ def verify(tree):
                 envelope[dim] = (mid, upper)
                 check(node.right, envelope, depth + 1)
             # revert mutable envelope
-            envelope[dim] = (lower, upper)
+            envelope[dim] = low_up
 
     if tree.head is not None:
         check(tree.head, list(tree.envelope), 0)

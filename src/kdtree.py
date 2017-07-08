@@ -1,12 +1,22 @@
 # coding=utf-8
 
 
-class UniformKdTree(object):
+def uniform_split(envelope, dim):
+    """
+    Determines which direction an item splits when traversing down.
+
+    Returns midpoint for the specified dimension
+    """
+    lower, upper = envelope[dim]
+    return (lower + upper) / 2
+
+
+class ImplicitKdTree(object):
     """Mutable k-d tree implementation optimized for uniform distributions.
     Pathological distributions will unavoidably unbalance the tree."""
-    __slots__ = ('items', 'head', 'k', 'envelope')
+    __slots__ = ('items', 'head', 'k', 'envelope', 'splitter')
 
-    def __init__(self, k, envelope):
+    def __init__(self, k, envelope, splitter=uniform_split):
         """
         :param k: dimensionality
         :param envelope: ((min, max), ...) for each dimension
@@ -15,6 +25,7 @@ class UniformKdTree(object):
         self.head = None
         self.k = k
         self.envelope = envelope
+        self.splitter = splitter
 
     def __len__(self):
         return len(self.items)
@@ -30,17 +41,10 @@ class UniformKdTree(object):
             current = self.head
             depth = 0
             while True:
-                if kd_splits_right(value, self.k, envelope, depth):
-                    depth += 1
-                    # traverse right
-                    if current.right:
-                        # traverse down
-                        current = current.right
-                        continue
-                    else:
-                        self.items[key] = current.right = KdNode(key, value, current, depth)
-                        break
-                else:
+                dim = depth % self.k
+                mid = self.splitter(envelope, dim)
+                if value[dim] < mid:
+                    envelope[dim] = (envelope[dim][0], mid)
                     depth += 1
                     # traverse left
                     if current.left:
@@ -49,6 +53,17 @@ class UniformKdTree(object):
                         continue
                     else:
                         self.items[key] = current.left = KdNode(key, value, current, depth)
+                        break
+                else:
+                    envelope[dim] = (mid, envelope[dim][1])
+                    depth += 1
+                    # traverse right
+                    if current.right:
+                        # traverse down
+                        current = current.right
+                        continue
+                    else:
+                        self.items[key] = current.right = KdNode(key, value, current, depth)
                         break
 
             # update tree depth in parents
@@ -63,8 +78,6 @@ class UniformKdTree(object):
 
     def remove(self, key):
         current = self.items.pop(key)
-        if current is None:
-            return  # that key isn't in the tree
         if not self.items:  # this was the last item
             self.head = None
             return
@@ -81,22 +94,54 @@ class UniformKdTree(object):
             current.key, current.val = popped_key, popped_val
             self.items[popped_key] = current
 
+    def nearest(self, value, max_sq_dist=float('inf')):
+        """
+        Return the nearest item to the given value.
 
-def kd_splits_right(value, k, envelope, depth):
-    """
-    Determines which direction an item splits when traversing down.
+        Returns (key, value, squared_distance) tuple. If the tree is empty, returns (None, None, infinity)
+        """
+        if not self:
+            return None, None, float('inf')
 
-    Returns True for right False for left, and mutates envelope for that subtree.
-    """
-    dim = depth % k
-    lower, upper = envelope[dim]
-    mid = (lower + upper) / 2
-    if value[dim] < mid:
-        envelope[dim] = (lower, mid)
-        return False
-    else:
-        envelope[dim] = (mid, upper)
-        return True
+        best_sqd = max_sq_dist
+        best_node = None
+
+        def search(node, envelope, depth):
+            nonlocal best_sqd, best_node
+            sqd = sum((a - b)**2 for a, b in zip(value, node.val))
+            # update best
+            if sqd < best_sqd:
+                best_sqd, best_node = sqd, node
+            # prepare to traverse down
+            dim = depth % self.k
+            low_up = lower, upper = envelope[dim]
+            mid = self.splitter(envelope, dim)
+            depth += 1
+            # traverse near side first
+            if value[dim] < mid:
+                if node.right:
+                    envelope[dim] = (lower, mid)
+                    search(node.right, envelope, depth)
+                # traverse other side if needed
+                if node.left and (mid - value[dim])**2 < best_sqd:
+                    envelope[dim] = (mid, upper)
+                    search(node.left, envelope, depth)
+            else:
+                if node.left:
+                    envelope[dim] = (mid, upper)
+                    search(node.left, envelope, depth)
+                # traverse other side if needed
+                if node.right and (mid - value[dim])**2 < best_sqd:
+                    envelope[dim] = (lower, mid)
+                    search(node.right, envelope, depth)
+            # revert mutable envelope
+            envelope[dim] = low_up
+
+        search(self.head, list(self.envelope), 0)
+        if best_node:
+            return best_node.key, best_node.val, best_sqd
+        else:
+            return None, None, float('inf')
 
 
 class KdNode(object):
