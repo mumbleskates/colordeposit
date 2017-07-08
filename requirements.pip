@@ -1,6 +1,4 @@
-asyncpg
 numpy
 Pillow
 pytest
 tqdm
-uvloop
