@@ -39,24 +39,35 @@ def log(*s):
     print(*s)
 
 
-def get_lab_values(colors):
+def get_color_values(colors, colorspace):
     """Convert RGB integer colors to LAB triple-float32"""
-    # get [r, g, b] for each color
+    # get [r, g, b] for each color, reorient to have colors along the 0-axis
     values = np.array((colors & 0xff, (colors & 0xff00) >> 8, (colors & 0xff0000) >> 16), dtype=np.int8).transpose()
+
+    if colorspace == 'srgb':
+        return values
+
     # convert [r, g, b] from sRGB to linear scaled values
     srgb_linear = np.arange(256, dtype=np.float32) / 256
     srgb_linear = np.where(srgb_linear <= 0.04045, srgb_linear / 12.92, np.power((srgb_linear + 0.055) / 1.055, 2.4))
     values = srgb_linear[values]
     # convert linear RGB to XYZ
     values = np.dot(values, rgb_to_xyz)
+
+    if colorspace == 'xyz':
+        return values
+
     # convert XYZ to LAB
-    # scale all the values and reshape to have colors on axis 0
+    # scale all the values
     values = np.where(values > CIE_E, np.power(values, 1.0 / 3.0), values * 7.787 + (16.0 / 116.0))
     # final conversion to LAB
-    return np.dot(values, xyz_to_lab) - (16, 0, 0)
+    values = np.dot(values, xyz_to_lab) - (16, 0, 0)
+
+    if colorspace == 'lab':
+        return values
 
 
-def main(size=None, origin=None):
+def main(size=None, origin=None, colorspace='lab'):
 
     def store_frontier_value(new_value, point):
         kdtree.set(tuple(point), new_value)
@@ -117,7 +128,7 @@ def main(size=None, origin=None):
     log('shuffling')
     np.random.shuffle(colors)
     log('calculating color values')
-    values = get_lab_values(colors)
+    values = get_color_values(colors, colorspace.lower())
     envelope = tuple(zip(np.amin(values, axis=0), np.amax(values, axis=0)))
     log(f'envelope: {envelope}')
 
