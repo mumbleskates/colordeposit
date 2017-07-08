@@ -119,21 +119,21 @@ class ImplicitKdTree(object):
             depth += 1
             # traverse near side first
             if value[dim] < mid:
-                if node.right:
-                    envelope[dim] = (lower, mid)
-                    search(node.right, envelope, depth)
-                # traverse other side if needed
-                if node.left and (mid - value[dim])**2 < best_sqd:
-                    envelope[dim] = (mid, upper)
-                    search(node.left, envelope, depth)
-            else:
                 if node.left:
-                    envelope[dim] = (mid, upper)
+                    envelope[dim] = (lower, mid)
                     search(node.left, envelope, depth)
                 # traverse other side if needed
                 if node.right and (mid - value[dim])**2 < best_sqd:
-                    envelope[dim] = (lower, mid)
+                    envelope[dim] = (mid, upper)
                     search(node.right, envelope, depth)
+            else:
+                if node.right:
+                    envelope[dim] = (mid, upper)
+                    search(node.right, envelope, depth)
+                # traverse other side if needed
+                if node.left and (mid - value[dim])**2 < best_sqd:
+                    envelope[dim] = (lower, mid)
+                    search(node.left, envelope, depth)
             # revert mutable envelope
             envelope[dim] = low_up
 
