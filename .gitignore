@@ -1,2 +1,5 @@
 # ignore IDEA project folder
 /.idea/
+
+# virtualenv
+/venv/
