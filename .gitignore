@@ -3,3 +3,7 @@
 
 # virtualenv
 /venv/
+
+# more python
+.cache/
+__pycache__/
