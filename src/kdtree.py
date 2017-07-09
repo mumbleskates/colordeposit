@@ -118,7 +118,7 @@ class ImplicitKdTree(object):
         best_sqd = max_sq_dist
         best_node = None
 
-        def search(node, envelope, depth):
+        def search(node, depth):
             nonlocal best_sqd, best_node
             sqd = sum((a - b)**2 for a, b in zip(value, node.val))
             # update best
@@ -126,30 +126,23 @@ class ImplicitKdTree(object):
                 best_sqd, best_node = sqd, node
             # prepare to traverse down
             dim = depth % self.k
-            low_up = lower, upper = envelope[dim]
             mid = node.mid
             depth += 1
             # traverse near side first
             if value[dim] < mid:
                 if node.left:
-                    envelope[dim] = (lower, mid)
-                    search(node.left, envelope, depth)
+                    search(node.left, depth)
                 # traverse other side if needed
                 if node.right and (mid - value[dim])**2 < best_sqd:
-                    envelope[dim] = (mid, upper)
-                    search(node.right, envelope, depth)
+                    search(node.right, depth)
             else:
                 if node.right:
-                    envelope[dim] = (mid, upper)
-                    search(node.right, envelope, depth)
+                    search(node.right, depth)
                 # traverse other side if needed
                 if node.left and (mid - value[dim])**2 < best_sqd:
-                    envelope[dim] = (lower, mid)
-                    search(node.left, envelope, depth)
-            # revert mutable envelope
-            envelope[dim] = low_up
+                    search(node.left, depth)
 
-        search(self.head, list(self.envelope), 0)
+        search(self.head, 0)
         if best_node:
             return best_node.key, best_node.val, best_sqd
         else:
