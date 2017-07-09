@@ -40,7 +40,27 @@ class ImplicitKdTree(object):
 
     def set(self, key, value):
         if key in self.items:
-            self.remove(key)
+            node = self.items[key]
+            path = ()
+            while node.parent:
+                node, path = node.parent, (node, path)
+            # traverse back down while checking that the envelope still matches
+            depth = 0
+            while path:
+                parent, (node, path) = node, path
+                dim = depth % self.k
+                if (parent.left if value[dim] < parent.mid else parent.right) is node:
+                    depth += 1
+                    continue
+                else:
+                    # the new value can't go in this node, remove it
+                    self.remove(key)
+                    break
+            else:
+                # this node is still valid for the new value!
+                node.val = value
+                return
+
         if self.head:
             envelope = list(self.envelope)
             current = self.head
