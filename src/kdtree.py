@@ -11,6 +11,11 @@ def uniform_split(envelope, dim):
     return (lower + upper) / 2
 
 
+def uniform_integer_split(envelope, dim):
+    lower, upper = envelope[dim]
+    return (lower + upper) // 2
+
+
 class ImplicitKdTree(object):
     """Mutable k-d tree implementation optimized for uniform distributions.
     Pathological distributions will unavoidably unbalance the tree."""
@@ -77,10 +82,12 @@ class ImplicitKdTree(object):
             self.items[key] = self.head = KdNode(key, value, None, 0)
 
     def remove(self, key):
-        current = self.items.pop(key)
+        current = self.items.pop(key, None)
+        if not current:
+            return False
         if not self.items:  # this was the last item
             self.head = None
-            return
+            return True
         replacement, popped_key, popped_val = current.pop_deepest()
         if replacement is None:
             # we need to delete ourselves from the parent
@@ -93,6 +100,7 @@ class ImplicitKdTree(object):
             # replacement case
             current.key, current.val = popped_key, popped_val
             self.items[popped_key] = current
+        return True
 
     def nearest(self, value, max_sq_dist=float('inf')):
         """
