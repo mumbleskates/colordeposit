@@ -173,26 +173,23 @@ class KdNode(object):
             if self.right is None:
                 # this is a leaf node
                 # before returning, adjust tree depths downwards
-                self.depth -= 1  # this node will be deleted
+                new_depth = self.depth - 1  # this node will be deleted
                 current, parent = self, self.parent
-                if parent and parent.left and parent.right:
-                    pass  # if parent has other children, nothing happens
-                else:
-                    while parent and parent.depth > self.depth:
-                        # check against the other side
-                        if parent.left is current:
-                            # we can reduce parent's depth but not below the depth of the other side
-                            if parent.right is None or parent.right.depth <= self.depth:
-                                parent.depth = self.depth
-                            else:  # we can't decrease depth, so we are done
-                                break
-                        else:  # same on other side
-                            if parent.left is None or parent.left.depth <= self.depth:
-                                parent.depth = self.depth
-                            else:
-                                break
-                        # traverse upwards
-                        current, parent = parent, parent.parent
+                while parent:
+                    # check against the other side
+                    if parent.left is current:
+                        # we can reduce parent's depth but not below the depth of the other side
+                        if parent.right is None or parent.right.depth <= new_depth:
+                            parent.depth = new_depth
+                        else:  # we can't decrease depth, so we are done
+                            break
+                    else:  # same on other side
+                        if parent.left is None or parent.left.depth <= new_depth:
+                            parent.depth = new_depth
+                        else:
+                            break
+                    # traverse upwards
+                    current, parent = parent, parent.parent
                 return None, self.key, self.val
         else:
             if self.right is None or self.right.depth < self.left.depth:

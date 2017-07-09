@@ -7,16 +7,17 @@ from kdtree import ImplicitKdTree
 
 
 @pytest.mark.parametrize('k', range(1, 8))
-def test_fuzz(k, verbose=False):
+def test_fuzz(k, verbose=False, size=5000):
     tree = ImplicitKdTree(k, tuple((0, 1) for _ in range(k)))
-    keys = list(range(min(64 ** k, 50000)))
+    keys = list(range(size))
+    each = size // 15
 
     full_count = 0
     for step in ('adding nodes', 'moving nodes'):
         for i, key in enumerate(keys):
             assert len(tree) == full_count or i
             tree.set(key, tuple(random.random() for _ in range(k)))
-            if key % 3333 == 0 or (full_count or i) < 100:
+            if key % each == 0 or (full_count or i) < 10:
                 verify(tree)
         assert len(tree) == len(keys)
         verify(tree)
@@ -29,7 +30,7 @@ def test_fuzz(k, verbose=False):
     for i, key in enumerate(keys):
         assert len(tree) == len(keys) - i
         tree.remove(key)
-        if i % 3333 == 0 or len(keys) - i < 100:
+        if i % each == 0 or len(keys) - i < 10:
             verify(tree)
     assert len(tree) == 0
     verify(tree)
@@ -111,4 +112,4 @@ def perfect_average_depth(node_count, branch_factor=2):
 if __name__ == '__main__':
     verify = lambda tree: None
     for k in range(1, 8):
-        test_fuzz(k, verbose=True)
+        test_fuzz(k, verbose=True, size=50000)
