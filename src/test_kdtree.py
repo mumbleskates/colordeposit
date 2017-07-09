@@ -60,6 +60,7 @@ def verify(tree):
             # recurse downwards
             low_up = lower, upper = envelope[dim]
             mid = tree.splitter(envelope, dim)
+            assert node.mid == mid
             if node.left:
                 envelope[dim] = (lower, mid)
                 check(node.left, envelope, depth + 1)

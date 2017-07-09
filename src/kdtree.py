@@ -47,28 +47,32 @@ class ImplicitKdTree(object):
             depth = 0
             while True:
                 dim = depth % self.k
-                mid = self.splitter(envelope, dim)
+                depth += 1
+                lower, upper = envelope[dim]
+                mid = current.mid
                 if value[dim] < mid:
-                    envelope[dim] = (envelope[dim][0], mid)
-                    depth += 1
+                    envelope[dim] = (lower, mid)
                     # traverse left
                     if current.left:
                         # traverse down
                         current = current.left
                         continue
                     else:
-                        self.items[key] = current.left = KdNode(key, value, current, depth)
+                        self.items[key] = current.left = KdNode(
+                            key, value, current, depth, self.splitter(envelope, (dim + 1) % self.k)
+                        )
                         break
                 else:
-                    envelope[dim] = (mid, envelope[dim][1])
-                    depth += 1
+                    envelope[dim] = (mid, upper)
                     # traverse right
                     if current.right:
                         # traverse down
                         current = current.right
                         continue
                     else:
-                        self.items[key] = current.right = KdNode(key, value, current, depth)
+                        self.items[key] = current.right = KdNode(
+                            key, value, current, depth, self.splitter(envelope, (dim + 1) % self.k)
+                        )
                         break
 
             # update tree depth in parents
@@ -79,7 +83,7 @@ class ImplicitKdTree(object):
                 current = current.parent
 
         else:
-            self.items[key] = self.head = KdNode(key, value, None, 0)
+            self.items[key] = self.head = KdNode(key, value, None, 0, self.splitter(self.envelope, 0))
 
     def remove(self, key):
         current = self.items.pop(key, None)
@@ -123,7 +127,7 @@ class ImplicitKdTree(object):
             # prepare to traverse down
             dim = depth % self.k
             low_up = lower, upper = envelope[dim]
-            mid = self.splitter(envelope, dim)
+            mid = node.mid
             depth += 1
             # traverse near side first
             if value[dim] < mid:
@@ -153,13 +157,14 @@ class ImplicitKdTree(object):
 
 
 class KdNode(object):
-    __slots__ = ('key', 'val', 'parent', 'depth', 'left', 'right')
+    __slots__ = ('key', 'val', 'parent', 'depth', 'mid', 'left', 'right')
 
-    def __init__(self, key, val, parent, depth):
+    def __init__(self, key, val, parent, depth, mid):
         self.key = key
         self.val = val
         self.parent = parent
         self.depth = depth  # depth of deepest node in this subtree
+        self.mid = mid
         self.left = None
         self.right = None
 
