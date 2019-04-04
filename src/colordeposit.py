@@ -59,14 +59,21 @@ def log(*s):
 def get_color_values(colors, colorspace):
     """Convert RGB integer colors to LAB triple-float32"""
     # get [r, g, b] for each color, reorient to have colors along the 0-axis
-    values = np.array((colors & 0xff, (colors & 0xff00) >> 8, (colors & 0xff0000) >> 16), dtype=np.uint8).transpose()
+    values = np.array(
+        (colors & 0xff, (colors & 0xff00) >> 8, (colors & 0xff0000) >> 16),
+        dtype=np.uint8
+    ).transpose()
 
     if colorspace == 'srgb':
         return values.astype(np.float64)
 
     # convert [r, g, b] from sRGB to linear scaled values
     srgb_linear = np.arange(256, dtype=np.float64) / 256
-    srgb_linear = np.where(srgb_linear <= 0.04045, srgb_linear / 12.92, np.power((srgb_linear + 0.055) / 1.055, 2.4))
+    srgb_linear = np.where(
+        srgb_linear <= 0.04045,
+        srgb_linear / 12.92,
+        np.power((srgb_linear + 0.055) / 1.055, 2.4)
+    )
     values = srgb_linear[values]
     # convert linear RGB to XYZ
     values = np.dot(values, rgb_to_xyz)
@@ -76,7 +83,11 @@ def get_color_values(colors, colorspace):
 
     # convert XYZ to LAB
     # scale all the values
-    values = np.where(values > CIE_E, np.power(values, 1.0 / 3.0), values * 7.787 + (16.0 / 116.0))
+    values = np.where(
+        values > CIE_E,
+        np.power(values, 1.0 / 3.0),
+        values * 7.787 + (16.0 / 116.0)
+    )
     # final conversion to LAB
     values = np.dot(values, xyz_to_lab) - (16, 0, 0)
 
@@ -84,7 +95,8 @@ def get_color_values(colors, colorspace):
         return values
 
 
-def main(size=None, origin=None, colorspace='lab', sortaxis=None, fuzz=0.0, neighbor_count='8'):
+def main(size=None, origin=None, colorspace='lab',
+         sortaxis=None, fuzz=0.0, neighbor_count='8'):
 
     def store_frontier_value(new_value, point):
         kdtree.set(tuple(point), new_value)
@@ -143,9 +155,11 @@ def main(size=None, origin=None, colorspace='lab', sortaxis=None, fuzz=0.0, neig
 
     # prepare
     log('allocating')
-    canvas = np.full(size, -1, dtype=np.int32)  # indices to colors placed on the image
+    # indices to colors placed on the image
+    canvas = np.full(size, -1, dtype=np.int32)
     # create every color
-    colors = np.arange(1 << 24, dtype=np.uint32) | 0xff000000  # mask max alpha channel
+    # mask max alpha channel
+    colors = np.arange(1 << 24, dtype=np.uint32) | 0xff000000
     log('shuffling')
     np.random.shuffle(colors)
     # truncate colors to our image size
@@ -190,7 +204,8 @@ def main(size=None, origin=None, colorspace='lab', sortaxis=None, fuzz=0.0, neig
         if fuzz:
             sort_space += np.random.normal(scale=fuzz, size=sort_space.shape)
         log(
-            f'sorting {"reversed " if sort_dir == -1 else ""}by axis "{sortaxis}" from {sort_space_name} '
+            f'sorting {"reversed " if sort_dir == -1 else ""}'
+            f'by axis "{sortaxis}" from {sort_space_name} '
             f'with {fuzz} normal fuzzing'
         )
         sort_space = np.argsort(sort_space, kind='mergesort')  # use stable sort

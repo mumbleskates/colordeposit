@@ -23,8 +23,13 @@ def test_fuzz(k, verbose=False, size=5000):
         verify(tree)
         full_count = len(keys)
         if verbose:
-            print(f'Max depth for {k}-d tree with {len(keys)} nodes after {step}: {tree.head.depth}')
-            print(f'Tree unbalance: {average_depth(tree) / (perfect_average_depth(len(tree)) or 1)}')
+            print(
+                f'Max depth for {k}-d tree with {len(keys)} nodes '
+                f'after {step}: {tree.head.depth}'
+            )
+            print(f'''Tree unbalance: {
+                average_depth(tree) / (perfect_average_depth(len(tree)) or 1)
+            }''')
         random.shuffle(keys)
 
     for i, key in enumerate(keys):
@@ -56,7 +61,9 @@ def verify(tree):
         if node.left is None and node.right is None:
             assert node.depth == depth
         else:
-            assert node.depth == max(0 if n is None else n.depth for n in (node.left, node.right))
+            assert node.depth == max(
+                0 if n is None else n.depth for n in (node.left, node.right)
+            )
 
             # recurse downwards
             low_up = lower, upper = envelope[dim]

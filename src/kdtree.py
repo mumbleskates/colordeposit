@@ -41,49 +41,53 @@ class ImplicitKdTree(object):
     def set(self, key, value):
         if key in self.items:
             self.remove(key)
-        if self.head:
-            envelope = list(self.envelope)
-            current = self.head
-            depth = 0
-            while True:
-                dim = depth % self.k
-                depth += 1
-                lower, upper = envelope[dim]
-                mid = current.mid
-                if value[dim] < mid:
-                    envelope[dim] = (lower, mid)
-                    # traverse left
-                    if current.left:
-                        # traverse down
-                        current = current.left
-                        continue
-                    else:
-                        self.items[key] = current.left = KdNode(
-                            key, value, current, depth, self.splitter(envelope, (dim + 1) % self.k)
-                        )
-                        break
+        if not self.head:
+            self.items[key] = self.head = KdNode(
+                key, value, None, 0, self.splitter(self.envelope, 0)
+            )
+            return
+
+        envelope = list(self.envelope)
+        current = self.head
+        depth = 0
+        while True:
+            dim = depth % self.k
+            depth += 1
+            lower, upper = envelope[dim]
+            mid = current.mid
+            if value[dim] < mid:
+                envelope[dim] = (lower, mid)
+                # traverse left
+                if current.left:
+                    # traverse down
+                    current = current.left
+                    continue
                 else:
-                    envelope[dim] = (mid, upper)
-                    # traverse right
-                    if current.right:
-                        # traverse down
-                        current = current.right
-                        continue
-                    else:
-                        self.items[key] = current.right = KdNode(
-                            key, value, current, depth, self.splitter(envelope, (dim + 1) % self.k)
-                        )
-                        break
+                    self.items[key] = current.left = KdNode(
+                        key, value, current, depth,
+                        self.splitter(envelope, (dim + 1) % self.k)
+                    )
+                    break
+            else:
+                envelope[dim] = (mid, upper)
+                # traverse right
+                if current.right:
+                    # traverse down
+                    current = current.right
+                    continue
+                else:
+                    self.items[key] = current.right = KdNode(
+                        key, value, current, depth,
+                        self.splitter(envelope, (dim + 1) % self.k)
+                    )
+                    break
 
-            # update tree depth in parents
-            while current:
-                if current.depth >= depth:
-                    return
-                current.depth = depth
-                current = current.parent
-
-        else:
-            self.items[key] = self.head = KdNode(key, value, None, 0, self.splitter(self.envelope, 0))
+        # update tree depth in parents
+        while current:
+            if current.depth >= depth:
+                return
+            current.depth = depth
+            current = current.parent
 
     def remove(self, key):
         current = self.items.pop(key, None)
@@ -110,7 +114,8 @@ class ImplicitKdTree(object):
         """
         Return the nearest item to the given value.
 
-        Returns (key, value, squared_distance) tuple. If the tree is empty, returns (None, None, infinity)
+        Returns (key, value, squared_distance) tuple. If the tree is empty,
+        returns (None, None, infinity)
         """
         if not self:
             return None, None, float('inf')
@@ -178,13 +183,20 @@ class KdNode(object):
                 while parent:
                     # check against the other side
                     if parent.left is current:
-                        # we can reduce parent's depth but not below the depth of the other side
-                        if parent.right is None or parent.right.depth <= new_depth:
+                        # we can reduce parent's depth but not below the depth
+                        # of the other side
+                        if (
+                                parent.right is None
+                                or parent.right.depth <= new_depth
+                        ):
                             parent.depth = new_depth
                         else:  # we can't decrease depth, so we are done
                             break
                     else:  # same on other side
-                        if parent.left is None or parent.left.depth <= new_depth:
+                        if (
+                                parent.left is None
+                                or parent.left.depth <= new_depth
+                        ):
                             parent.depth = new_depth
                         else:
                             break
